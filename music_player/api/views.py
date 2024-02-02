@@ -31,6 +31,32 @@ class GetRoom(APIView):
         return Response({'Bad Request': 'Code not found in request'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+#User can join Room once the room code is valid
+#Post request. GET doesn't really make sense
+        
+class JoinRoom(APIView):
+    
+    lookup_url_kwarg = 'code'
+    def post(self, request, format=None):
+
+        #Checking if the user has an active session with our webserver. If it doesn't we create it
+        if not self.request.session.exists(self.request.session.session_key):
+            self.request.session.create()
+        #With post request you can simply use the data field
+        code = request.data.get(self.lookup_url_kwarg)
+        if code != None:
+            room_result = Room.objects.filter(code=code)
+            if len(room_result) > 0:
+                room = room_result[0]
+                #This says that this user in this session is in the room
+                self.request.session['room_code'] = code
+                return Response({'message': 'Room Joined'}, status=status.HTTP_200_OK)
+            
+            return Response({'Bad Request': 'Invalid Room Code'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({'Bad Request': 'Invalid post data, did not find a code key'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 #API view allows you to override common methods (get, post, etc)
 class CreateRoomView(APIView):
@@ -59,6 +85,7 @@ class CreateRoomView(APIView):
             else:
                 room = Room(host=host, guest_can_pause=guest_can_pause, votes_to_skip=votes_to_skip)
                 room.save()
+                self.request.session['room_code'] = room.code
                 return Response(RoomSerializer(room).data, status=status.HTTP_201_CREATED)
             
             #.data will give us a json formatted data
