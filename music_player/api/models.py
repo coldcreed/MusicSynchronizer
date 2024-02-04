@@ -4,7 +4,7 @@ import random
 
 # Create your models here.
 # Creating a model for the room. Room meaning multiple users can listen to thesame host music in the room
-#These are the attributes and constraints for this room
+# These are the attributes and constraints for this room
 
 
 #Generating the unique code per room
