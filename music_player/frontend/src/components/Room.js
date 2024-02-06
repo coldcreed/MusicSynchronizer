@@ -2,6 +2,7 @@
 import React, { Component } from 'react';
 import { Grid, Button, Typography } from "@material-ui/core";
 import CreateRoomPage from "./CreateRoomPage";
+import MusicPlayer from './MusicPlayer';
 
 
 export default class Room extends Component {
@@ -13,6 +14,7 @@ export default class Room extends Component {
             isHost: false,
             showSettings: false,
             spotifyAuthenticated: false,
+            song: {}
         };
 
         this.roomCode = this.props.match.params.roomCode;
@@ -22,7 +24,18 @@ export default class Room extends Component {
         this.renderSettings = this.renderSettings.bind(this);
         this.getRoomDetails = this.getRoomDetails.bind(this);
         this.authenticateSpotify = this.authenticateSpotify.bind(this);
+        this.getCurrentSong = this.getCurrentSong.bind(this);
         this.getRoomDetails();
+    }
+
+    //Polling method to send requests to our server every second to update the song. This usually isnt the best way
+    
+    componentDidMount() {
+        this.interval = setInterval(this.getCurrentSong, 1000);
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.interval);
     }
 
     getRoomDetails() {
@@ -62,7 +75,23 @@ export default class Room extends Component {
           });
       }
 
-    leaveButtonPressed () {
+      getCurrentSong() {
+        fetch("/spotify/current-song")
+          .then((response) => {
+            //We don't have any song data so return empty response
+            if (!response.ok) {
+              return {};
+            } else {
+              return response.json();
+            }
+          })
+          .then((data) => {
+            this.setState({ song: data });
+            console.log(data);
+        });
+    }
+   
+      leaveButtonPressed () {
         const requestOptions = {
             method: "POST",
             headers: {"Content-Type": "application/json"},
@@ -121,25 +150,11 @@ export default class Room extends Component {
         }
         return <Grid container spacing={1}>
             <Grid item xs={12} align="center">
-                <Typography variant="h6" component="h6">
+                <Typography variant="h4" component="h4">
                     Code: {this.roomCode}
                 </Typography>
             </Grid>
-            <Grid item xs={12} align="center">
-                <Typography variant="h6" component="h6">
-                    Votes: {this.state.votesToSkip}
-                </Typography>
-            </Grid>
-            <Grid item xs={12} align="center">
-                <Typography variant="h6" component="h6">
-                    Guest Can Pause: {this.state.guestCanPause.toString()}
-                </Typography>
-            </Grid>
-            <Grid item xs={12} align="center">
-                <Typography variant="h6" component="h6">
-                    Host: {this.state.isHost.toString()}
-                </Typography>
-            </Grid>
+            <MusicPlayer {...this.state.song}/>
             {this.state.isHost ? this.renderSettingsButton(): null}
             <Grid item xs={12} align="center">
                 <Button variant="contained" color="secondary" onClick={this.leaveButtonPressed}>
